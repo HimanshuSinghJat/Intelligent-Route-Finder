@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Intelligent Route Finder</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+font-family:Poppins;
+margin:0;
+background:linear-gradient(120deg,#667eea,#764ba2);
+}
+
+.container{
+width:900px;
+max-width:95%;
+margin:auto;
+background:white;
+margin-top:40px;
+padding:30px;
+border-radius:12px;
+text-align:center;
+box-shadow:0 8px 30px rgba(0,0,0,0.2);
+}
+
+textarea{
+width:70%;
+height:120px;
+padding:10px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+input,select{
+padding:8px;
+margin:6px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+button{
+background:#667eea;
+border:none;
+color:white;
+padding:10px 18px;
+border-radius:6px;
+cursor:pointer;
+margin:8px;
+}
+
+button:hover{
+background:#5563c1;
+}
+
+.graph{
+margin-top:20px;
+}
+
+.result{
+background:#f1f1f1;
+padding:15px;
+border-radius:10px;
+margin-top:15px;
+}
+
+</style>
+
+<script>
+
+function showCustom(){
+
+document.getElementById("customBox").style.display="block"
+
+document.getElementById("mode").value="custom"
+
+}
+
+function resetGraph(){
+
+window.location="/"
+
+}
+
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚀 Intelligent Route Finder</h1>
+
+<button onclick="showCustom()">Customize</button>
+<button onclick="resetGraph()">Reset</button>
+
+<form method="POST">
+
+<input type="hidden" name="mode" id="mode" value="{{ mode }}">
+
+{% if mode == "custom" %}
+<div id="customBox" style="display:block">
+{% else %}
+<div id="customBox" style="display:none">
+{% endif %}
+
+<h3>Enter Custom Edges</h3>
+
+<textarea name="edges" placeholder="Example:
+
+A B 4
+B C 3
+C D 5
+
+">{{ edges }}</textarea>
+
+<br>
+
+<button name="action" value="generate">Generate Graph</button>
+
+</div>
+
+<br>
+
+Start Node
+<input name="start" value="{{ start }}">
+
+Goal Node
+<input name="goal" value="{{ goal }}">
+
+<select name="algorithm">
+
+<option value="astar">A* Algorithm</option>
+<option value="greedy">Best First Search</option>
+
+</select>
+
+<br>
+
+<button name="action" value="find">Find Path</button>
+
+</form>
+
+<div class="graph">
+
+<img src="data:image/png;base64,{{ graph }}" width="500">
+
+</div>
+
+{% if result %}
+
+<div class="result">
+
+<b>Path:</b> {{ result }} <br>
+
+<b>Total Cost:</b> {{ cost }}
+
+</div>
+
+{% endif %}
+
+</div>
+
+</body>
+
+</html>

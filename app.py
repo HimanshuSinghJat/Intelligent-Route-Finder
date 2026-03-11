@@ -11,6 +11,10 @@ import os
 
 app = Flask(__name__)
 
+# -----------------------
+# DEFAULT GRAPH
+# -----------------------
+
 default_edges = [
     ('A','B',4),
     ('A','C',2),
@@ -23,22 +27,15 @@ default_edges = [
     ('E','F',3)
 ]
 
-heuristic = {}
+default_heuristic = {
+'A':10,'B':8,'C':5,'D':7,'E':3,'F':0
+}
 
-def calculate_heuristic(graph, goal):
+heuristic = default_heuristic.copy()
 
-    h = {}
-
-    for node in graph.nodes:
-
-        try:
-            dist = nx.shortest_path_length(graph,node,goal,weight='weight')
-            h[node] = dist
-        except:
-            h[node] = 999
-
-    return h
-
+# -----------------------
+# PARSE EDGES
+# -----------------------
 
 def parse_edges(text):
 
@@ -56,6 +53,31 @@ def parse_edges(text):
 
     return edges
 
+
+# -----------------------
+# PARSE HEURISTIC
+# -----------------------
+
+def parse_heuristic(text):
+
+    h={}
+    lines=text.strip().split("\n")
+
+    for line in lines:
+
+        parts=line.split()
+
+        if len(parts)==2:
+
+            node,val=parts
+            h[node]=int(val)
+
+    return h
+
+
+# -----------------------
+# A* SEARCH
+# -----------------------
 
 def a_star(graph,start,goal):
 
@@ -88,6 +110,10 @@ def a_star(graph,start,goal):
     return None
 
 
+# -----------------------
+# GREEDY BEST FIRST
+# -----------------------
+
 def greedy(graph,start,goal):
 
     pq=[(0,start,[start])]
@@ -113,17 +139,20 @@ def greedy(graph,start,goal):
     return None
 
 
-def draw_graph(graph, path=None):
+# -----------------------
+# DRAW GRAPH
+# -----------------------
+
+def draw_graph(graph,path=None):
 
     plt.figure(figsize=(6,5))
 
-    pos = nx.spring_layout(graph, seed=2)
+    pos = nx.spring_layout(graph,seed=2)
 
-    # Node labels with heuristic
-    labels = {}
+    labels={}
     for node in graph.nodes:
-        h = heuristic.get(node, "?")
-        labels[node] = f"{node}\n(h={h})"
+        h=heuristic.get(node,"?")
+        labels[node]=f"{node}\n(h={h})"
 
     nx.draw(
         graph,
@@ -134,14 +163,12 @@ def draw_graph(graph, path=None):
         font_size=10
     )
 
-    # Draw edge weights
-    edge_labels = nx.get_edge_attributes(graph, 'weight')
-    nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
+    edge_labels=nx.get_edge_attributes(graph,'weight')
+    nx.draw_networkx_edge_labels(graph,pos,edge_labels=edge_labels)
 
-    # Highlight path with arrows
     if path:
 
-        path_edges = list(zip(path, path[1:]))
+        path_edges=list(zip(path,path[1:]))
 
         nx.draw_networkx_edges(
             graph,
@@ -156,41 +183,62 @@ def draw_graph(graph, path=None):
             min_target_margin=25
         )
 
-    img = io.BytesIO()
-    plt.savefig(img, format="png")
+    img=io.BytesIO()
+    plt.savefig(img,format="png")
     img.seek(0)
     plt.close()
 
     return base64.b64encode(img.getvalue()).decode()
+
+
+# -----------------------
+# MAIN ROUTE
+# -----------------------
+
 @app.route("/",methods=["GET","POST"])
 def index():
 
     result=None
     cost=None
-    graph_img=None
     table=[]
+    graph_img=None
 
     mode="default"
+
     edges_text=""
+    heuristic_text=""
+
     start=""
     goal=""
 
     edges=default_edges
 
+    global heuristic
+
     if request.method=="POST":
 
         action=request.form.get("action")
+
         mode=request.form.get("mode","default")
 
         edges_text=request.form.get("edges","")
+        heuristic_text=request.form.get("heuristic","")
 
         start=request.form.get("start","")
         goal=request.form.get("goal","")
 
         algo=request.form.get("algorithm","astar")
 
-        if mode=="custom" and edges_text.strip():
-            edges=parse_edges(edges_text)
+        if mode=="custom":
+
+            if edges_text.strip():
+                edges=parse_edges(edges_text)
+
+            if heuristic_text.strip():
+                heuristic=parse_heuristic(heuristic_text)
+
+        else:
+            heuristic=default_heuristic.copy()
 
         G=nx.Graph()
         G.add_weighted_edges_from(edges)
@@ -204,9 +252,6 @@ def index():
                 result="Start or Goal node not in graph"
 
             else:
-
-                global heuristic
-                heuristic = calculate_heuristic(G,goal)
 
                 if algo=="astar":
                     path=a_star(G,start,goal)
@@ -256,6 +301,7 @@ def index():
         heuristic=heuristic,
         mode=mode,
         edges=edges_text,
+        heuristic_text=heuristic_text,
         start=start,
         goal=goal
     )

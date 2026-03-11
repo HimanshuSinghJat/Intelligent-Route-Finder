@@ -7,66 +7,43 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
-
 <style>
 
 body{
-font-family:Poppins;
+font-family:Arial;
+background:#667eea;
 margin:0;
-background:linear-gradient(120deg,#667eea,#764ba2);
 }
 
 .container{
 width:900px;
-max-width:95%;
 margin:auto;
 background:white;
-margin-top:40px;
 padding:30px;
-border-radius:12px;
+margin-top:40px;
+border-radius:10px;
 text-align:center;
-box-shadow:0 8px 30px rgba(0,0,0,0.2);
 }
 
 textarea{
 width:70%;
-height:120px;
-padding:10px;
-border-radius:6px;
-border:1px solid #ccc;
+height:100px;
+margin:10px;
 }
 
 input,select{
 padding:8px;
-margin:6px;
-border-radius:6px;
-border:1px solid #ccc;
+margin:5px;
 }
 
 button{
 background:#667eea;
-border:none;
-color:white;
-padding:10px 18px;
-border-radius:6px;
-cursor:pointer;
+padding:10px 15px;
 margin:8px;
 }
 
-button:hover{
-background:#5563c1;
-}
-
-.graph{
-margin-top:20px;
-}
-
-.result{
-background:#f1f1f1;
-padding:15px;
-border-radius:10px;
-margin-top:15px;
+button:hover {
+background: #5563c1;
 }
 
 table{
@@ -76,12 +53,8 @@ margin-top:15px;
 }
 
 th,td{
-padding:8px 14px;
+padding:8px;
 border:1px solid #ccc;
-}
-
-th{
-background:#eee;
 }
 
 </style>
@@ -109,7 +82,7 @@ window.location="/"
 
 <div class="container">
 
-<h1>🚀 Intelligent Route Finder</h1>
+<h1>Intelligent Route Finder</h1>
 
 <button onclick="showCustom()">Customize</button>
 <button onclick="resetGraph()">Reset</button>
@@ -124,15 +97,13 @@ window.location="/"
 <div id="customBox" style="display:none">
 {% endif %}
 
-<h3>Enter Custom Edges</h3>
+<h3>Custom Edges</h3>
 
-<textarea name="edges" placeholder="Example:
+<textarea name="edges">{{ edges }}</textarea>
 
-A B 4
-B C 3
-C D 5
+<h3>Heuristic Values</h3>
 
-">{{ edges }}</textarea>
+<textarea name="heuristic">{{ heuristic_text }}</textarea>
 
 <br>
 
@@ -162,7 +133,7 @@ Goal Node
 </form>
 
 
-<div class="graph">
+<div>
 
 <img src="data:image/png;base64,{{ graph }}" width="500">
 
@@ -171,20 +142,17 @@ Goal Node
 
 {% if result %}
 
-<div class="result">
+<h3>Result</h3>
 
 <b>Path:</b> {{ result }} <br>
 <b>Total Cost:</b> {{ cost }}
 
-</div>
-
 {% endif %}
-
 
 
 {% if table %}
 
-<h3>Path Cost Breakdown</h3>
+<h3>Cost Breakdown</h3>
 
 <table>
 
@@ -192,7 +160,7 @@ Goal Node
 <th>From</th>
 <th>To</th>
 <th>Edge Cost</th>
-<th>Cumulative Cost</th>
+<th>Cumulative</th>
 </tr>
 
 {% for row in table %}
@@ -209,33 +177,6 @@ Goal Node
 </table>
 
 {% endif %}
-
-
-
-{% if heuristic %}
-
-<h3>Heuristic Values</h3>
-
-<table>
-
-<tr>
-<th>Node</th>
-<th>h(n)</th>
-</tr>
-
-{% for node,value in heuristic.items() %}
-
-<tr>
-<td>{{node}}</td>
-<td>{{value}}</td>
-</tr>
-
-{% endfor %}
-
-</table>
-
-{% endif %}
-
 
 </div>
 

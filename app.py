@@ -7,14 +7,9 @@ import matplotlib.pyplot as plt
 import heapq
 import io
 import base64
-import time
 import os
 
 app = Flask(__name__)
-
-# -----------------------
-# DEFAULT GRAPH
-# -----------------------
 
 default_edges = [
     ('A','B',4),
@@ -28,18 +23,26 @@ default_edges = [
     ('E','F',3)
 ]
 
-heuristic = {
-'A':10,'B':8,'C':5,'D':7,'E':3,'F':0
-}
+heuristic = {}
 
-# -----------------------
-# PARSE CUSTOM EDGES
-# -----------------------
+def calculate_heuristic(graph, goal):
+
+    h = {}
+
+    for node in graph.nodes:
+
+        try:
+            dist = nx.shortest_path_length(graph,node,goal,weight='weight')
+            h[node] = dist
+        except:
+            h[node] = 999
+
+    return h
+
 
 def parse_edges(text):
 
     edges=[]
-
     lines=text.strip().split("\n")
 
     for line in lines:
@@ -54,14 +57,11 @@ def parse_edges(text):
     return edges
 
 
-# -----------------------
-# A* SEARCH
-# -----------------------
-
 def a_star(graph,start,goal):
 
     pq=[]
     heapq.heappush(pq,(0,start,[start]))
+
     visited=set()
 
     while pq:
@@ -82,15 +82,11 @@ def a_star(graph,start,goal):
 
             heapq.heappush(
                 pq,
-                (cost+weight,n,path+[n])
+                (cost+weight+heuristic.get(n,0),n,path+[n])
             )
 
     return None
 
-
-# -----------------------
-# GREEDY BEST FIRST
-# -----------------------
 
 def greedy(graph,start,goal):
 
@@ -117,59 +113,64 @@ def greedy(graph,start,goal):
     return None
 
 
-# -----------------------
-# DRAW GRAPH
-# -----------------------
-
-def draw_graph(graph,path=None):
+def draw_graph(graph, path=None):
 
     plt.figure(figsize=(6,5))
 
-    pos=nx.spring_layout(graph,seed=2)
+    pos = nx.spring_layout(graph, seed=2)
+
+    # Node labels with heuristic
+    labels = {}
+    for node in graph.nodes:
+        h = heuristic.get(node, "?")
+        labels[node] = f"{node}\n(h={h})"
 
     nx.draw(
-        graph,pos,
-        with_labels=True,
+        graph,
+        pos,
+        labels=labels,
         node_color="#8ecae6",
         node_size=2000,
-        font_size=12
+        font_size=10
     )
 
-    labels=nx.get_edge_attributes(graph,'weight')
-    nx.draw_networkx_edge_labels(graph,pos,edge_labels=labels)
+    # Draw edge weights
+    edge_labels = nx.get_edge_attributes(graph, 'weight')
+    nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
 
+    # Highlight path with arrows
     if path:
 
-        edges=list(zip(path,path[1:]))
+        path_edges = list(zip(path, path[1:]))
 
         nx.draw_networkx_edges(
-            graph,pos,
-            edgelist=edges,
+            graph,
+            pos,
+            edgelist=path_edges,
             edge_color="red",
-            width=3
+            width=3,
+            arrows=True,
+            arrowstyle='-|>',
+            arrowsize=15,
+            min_source_margin=25,
+            min_target_margin=25
         )
 
-    img=io.BytesIO()
-    plt.savefig(img,format="png")
+    img = io.BytesIO()
+    plt.savefig(img, format="png")
     img.seek(0)
     plt.close()
 
     return base64.b64encode(img.getvalue()).decode()
-
-
-# -----------------------
-# MAIN ROUTE
-# -----------------------
-
 @app.route("/",methods=["GET","POST"])
 def index():
 
     result=None
     cost=None
     graph_img=None
+    table=[]
 
     mode="default"
-
     edges_text=""
     start=""
     goal=""
@@ -179,7 +180,6 @@ def index():
     if request.method=="POST":
 
         action=request.form.get("action")
-
         mode=request.form.get("mode","default")
 
         edges_text=request.form.get("edges","")
@@ -190,7 +190,6 @@ def index():
         algo=request.form.get("algorithm","astar")
 
         if mode=="custom" and edges_text.strip():
-
             edges=parse_edges(edges_text)
 
         G=nx.Graph()
@@ -206,18 +205,37 @@ def index():
 
             else:
 
-                start_time=time.time()
+                global heuristic
+                heuristic = calculate_heuristic(G,goal)
 
                 if algo=="astar":
                     path=a_star(G,start,goal)
                 else:
                     path=greedy(G,start,goal)
 
-                end_time=time.time()
-
                 if path:
+
                     cost=nx.path_weight(G,path,weight="weight")
                     result=path
+
+                    cumulative=0
+
+                    for i in range(len(path)-1):
+
+                        u=path[i]
+                        v=path[i+1]
+
+                        w=G[u][v]['weight']
+
+                        cumulative+=w
+
+                        table.append({
+                            "from":u,
+                            "to":v,
+                            "cost":w,
+                            "cumulative":cumulative
+                        })
+
                 else:
                     result="No Path Found"
 
@@ -234,6 +252,8 @@ def index():
         graph=graph_img,
         result=result,
         cost=cost,
+        table=table,
+        heuristic=heuristic,
         mode=mode,
         edges=edges_text,
         start=start,
@@ -241,7 +261,7 @@ def index():
     )
 
 
+if __name__=="__main__":
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    port=int(os.environ.get("PORT",5000))
+    app.run(debug=True)

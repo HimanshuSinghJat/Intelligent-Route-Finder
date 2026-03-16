@@ -27,11 +27,7 @@ default_edges = [
     ('E','F',3)
 ]
 
-default_heuristic = {
-'A':10,'B':8,'C':5,'D':7,'E':3,'F':0
-}
-
-heuristic = default_heuristic.copy()
+heuristic = {}
 
 # -----------------------
 # PARSE EDGES
@@ -71,6 +67,25 @@ def parse_heuristic(text):
 
             node,val=parts
             h[node]=int(val)
+
+    return h
+
+
+# -----------------------
+# DYNAMIC HEURISTIC
+# -----------------------
+
+def update_heuristic(graph, goal):
+
+    h={}
+
+    for node in graph.nodes:
+
+        try:
+            dist = nx.shortest_path_length(graph,node,goal,weight='weight')
+            h[node] = dist
+        except:
+            h[node] = 999
 
     return h
 
@@ -149,6 +164,7 @@ def draw_graph(graph,path=None):
 
     pos = nx.spring_layout(graph,seed=2)
 
+    # node labels with heuristic
     labels={}
     for node in graph.nodes:
         h=heuristic.get(node,"?")
@@ -218,7 +234,6 @@ def index():
     if request.method=="POST":
 
         action=request.form.get("action")
-
         mode=request.form.get("mode","default")
 
         edges_text=request.form.get("edges","")
@@ -237,11 +252,12 @@ def index():
             if heuristic_text.strip():
                 heuristic=parse_heuristic(heuristic_text)
 
-        else:
-            heuristic=default_heuristic.copy()
-
         G=nx.Graph()
         G.add_weighted_edges_from(edges)
+
+        # automatic heuristic only for default graph
+        if mode=="default" and goal:
+            heuristic=update_heuristic(G,goal)
 
         path=None
 
@@ -290,6 +306,7 @@ def index():
 
         G=nx.Graph()
         G.add_weighted_edges_from(default_edges)
+        heuristic=update_heuristic(G,"F")
         graph_img=draw_graph(G)
 
     return render_template(
